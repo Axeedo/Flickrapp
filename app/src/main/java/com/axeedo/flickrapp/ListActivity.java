@@ -1,8 +1,5 @@
 package com.axeedo.flickrapp;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.ClipData;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
@@ -11,27 +8,21 @@ import android.util.Log;
 import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Adapter;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import com.android.volley.Cache;
-import com.android.volley.Network;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.BasicNetwork;
-import com.android.volley.toolbox.DiskBasedCache;
-import com.android.volley.toolbox.HurlStack;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.ImageRequest;
-import com.android.volley.toolbox.NetworkImageView;
 import com.android.volley.toolbox.Volley;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,13 +34,12 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Queue;
 import java.util.Vector;
 
 public class ListActivity extends AppCompatActivity {
 
     private RequestQueue queue;
-    private final Object tag = new Object();
+    private final Object stopRequestTag = new Object();
     //private Context context = this.getApplicationContext();
 
     @Override
@@ -57,46 +47,28 @@ public class ListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
 
-        ListView list = (ListView)findViewById(R.id.list);
+        ListView list = findViewById(R.id.list);
 
         MyAdapter adapter = new MyAdapter();
         list.setAdapter(adapter);
 
         String url = getString(R.string.image_url);
         new AsyncFlickrJSONDataForList(adapter).execute(url);
-
-
     }
 
     @Override
     protected void onStop () {
         super.onStop();
         if (queue != null) {
-            queue.cancelAll(tag);
+            queue.cancelAll(stopRequestTag);
         }
     }
-
-    /*protected void makeRequest(){
-        RequestQueue requestQueue; //= MySingleton.getInstance(this.getApplicationContext()).getRequestQueue();
-
-        // Instantiate the cache
-        Cache cache = new DiskBasedCache(getCacheDir(), 1024 * 1024); // 1MB cap
-
-        // Set up the network to use HttpURLConnection as the HTTP client.
-        Network network = new BasicNetwork(new HurlStack());
-
-        // Instantiate the RequestQueue with the cache and network.
-        requestQueue = new RequestQueue(cache, network);
-
-        // Start the queue
-        requestQueue.start();
-    }*/
 
     // Adapter linked to activity list
     class MyAdapter extends BaseAdapter{
         private Vector<String> urls;
         MyAdapter(){
-            urls = new Vector<String>();
+            urls = new Vector<>();
         }
         public void add(String url){
             urls.add(url);
@@ -119,72 +91,48 @@ public class ListActivity extends AppCompatActivity {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            Log.i("JFL", "TODO");
-            
-            //JSON text list
-            if (convertView == null) {
-                convertView = getLayoutInflater().inflate(R.layout.textviewlayout, parent, false);
-            }
-            ((TextView) convertView.findViewById(R.id.textviewlayout)).setText((String)getItem(position));
 
-            return convertView;
-
-            //Image list (Nullpointer exception)
-            /*RequestQueue queue = MySingleton.getInstance(parent.getContext()).
+            //Image list
+            RequestQueue queue = MySingleton.getInstance(parent.getContext()).
                     getRequestQueue();
-            //ImageView v = (ImageView)View.inflate(context,R.layout.bitmaplayout,null);
-            View v = getLayoutInflater().inflate(R.layout.bitmaplayout, parent, false);
-            //NetworkImageView imageView  = (NetworkImageView) v.findViewById(R.id.image);
+            //Alternatively, we can use Volley's pre-made queue:
+            // RequestQueue requestQueue = Volley.newRequestQueue(parent.getContext())
+
+            if(convertView == null){
+                convertView = getLayoutInflater().inflate(R.layout.bitmaplayout, parent, false);
+            }
+
+            View finalV = convertView;
             ImageRequest imageRequest = new ImageRequest(
-                    "http://img.my.csdn.net/uploads/201603/26/1458988468_5804.jpg",
+                    (String)getItem(position),
                     new Response.Listener<Bitmap>() {
                         @Override
                         public void onResponse(Bitmap response) {
-                            v.setImageBitmap(response);
+                            ((ImageView)finalV.findViewById(R.id.itemImage)).setImageBitmap(response);
                         }
-                    }, 0, 0, Bitmap.Config.RGB_565, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    v.setImageResource(R.drawable.ic_launcher_background);
-                }});
-            imageRequest.setTag(tag);
+                    }, 0, 0, ImageView.ScaleType.FIT_CENTER, Bitmap.Config.RGB_565,
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            ((ImageView)finalV.findViewById(R.id.itemImage)).setImageResource(R.drawable.ic_launcher_background);
+                        }
+                    }
+            );
+            imageRequest.setTag(stopRequestTag);
             queue.add(imageRequest);
-            return v;*/
-
-
-
-            /*Response.Listener<Bitmap> rep_listener = response -> {
-                if (convertView == null) {
-                    convertView = getLayoutInflater().inflate(R.layout.bitmaplayout, parent, false);
-                }
-                ImageView result = (ImageView) findViewById(R.id.image);
-                if (bitmap != null) {
-                    result.setImageBitmap(bitmap);
-                }
-            }
-            /*for(String url : urls){
-                ImageRequest imageRequest = new ImageRequest(url, );
-            }*/
-
+            return finalV;
         }
     }
-
-    /*private void getImages(String url, ImageView imageView){
-
-        /*imageLoader.get(url, ImageLoader.getImageListener(imageView,
-                R.drawable.image, android.R.drawable
-                        .ic_dialog_alert));
-        //imageView.setImageUrl(url, imageLoader);
-    }*/
 
     class AsyncFlickrJSONDataForList extends AsyncTask<String, Void, JSONObject> {
         MyAdapter adapter;
         public AsyncFlickrJSONDataForList(MyAdapter adapter){
             this.adapter = adapter;
         }
+
         @Override
         protected JSONObject doInBackground(String... strings) {
-            URL url = null;
+            URL url;
             JSONObject json =  null;
             try{
                 url = new URL(strings[0]);
@@ -238,7 +186,6 @@ public class ListActivity extends AppCompatActivity {
                     Log.i("JFL", "Adding to adapter url : " + url);
                 }
                 adapter.notifyDataSetChanged();
-                //new ListActivity.AsyncBitmapDownloader().execute(link);
             } catch (JSONException e) {
                 Log.i("JFL", "JSONException", e);
             }
@@ -284,9 +231,6 @@ class MySingleton {
         if (requestQueue == null) {
             // getApplicationContext() is key, it keeps you from leaking the
             // Activity or BroadcastReceiver if someone passes one in.
-            /*Cache cache = new DiskBasedCache(ctx.getCacheDir(), 10 * 1024 * 1024);
-            Network network = new BasicNetwork(new HurlStack());
-            requestQueue = new RequestQueue(cache, network);*/
             requestQueue = Volley.newRequestQueue(ctx.getApplicationContext());
         }
         return requestQueue;

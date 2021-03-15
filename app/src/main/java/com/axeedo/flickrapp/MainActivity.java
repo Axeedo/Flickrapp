@@ -11,7 +11,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,10 +32,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //Button for single image
-        Button getImage = (Button)findViewById(R.id.btn_get_image);
+        Button getImage = findViewById(R.id.btn_get_image);
         getImage.setOnClickListener(new GetImageOnClickListener());
         //Button for listactivity
-        Button gotoList = (Button)findViewById(R.id.btn_goto_list);
+        Button gotoList = findViewById(R.id.btn_goto_list);
         gotoList.setOnClickListener((new GotoListListener()));
     }
 
@@ -67,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     class AsyncFlickrJSONData extends AsyncTask<String, Void, JSONObject> {
         @Override
         protected JSONObject doInBackground(String... strings) {
-            URL url = null;
+            URL url;
             JSONObject json =  null;
             try{
                 url = new URL(strings[0]);
@@ -125,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
     class AsyncBitmapDownloader extends AsyncTask<String, Void, Bitmap>{
         @Override
         protected Bitmap doInBackground(String... strings) {
-            URL url = null;
+            URL url;
             Bitmap bm =  null;
             try{
                 url = new URL(strings[0]);
@@ -148,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Bitmap bitmap) {
-            ImageView result = (ImageView) findViewById(R.id.image);
+            ImageView result = findViewById(R.id.image);
             if (bitmap != null) {
                 result.setImageBitmap(bitmap);
             }
